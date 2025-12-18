@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coloring Page Maker (Offline Pro)</title>
+    <title>Coloring Page Maker (Pro)</title>
     <style>
         /* --- RESET & VARIABLES --- */
         :root {
@@ -29,7 +29,7 @@
             gap: 24px;
         }
 
-        /* Mobile Layout (Default): Image(1) -> Sliders(2) -> PDF(3) */
+        /* Mobile Layout */
         .section-preview { order: 1; }
         .section-controls { order: 2; }
         .section-pdf { order: 3; }
@@ -40,11 +40,8 @@
                 grid-template-columns: 320px 1fr;
                 align-items: start;
             }
-            /* Controls on Left */
             .section-controls { grid-column: 1; grid-row: 1; order: unset; }
-            /* Preview on Right */
             .section-preview { grid-column: 2; grid-row: 1; order: unset; }
-            /* PDF Options below Preview on Right */
             .section-pdf { grid-column: 2; grid-row: 2; order: unset; }
         }
 
@@ -64,7 +61,6 @@
             min-height: 300px;
         }
         .upload-area:hover { border-color: var(--primary); background: #eff6ff; }
-        .btn-group { display: flex; gap: 10px; width: 100%; max-width: 400px; }
         
         /* Controls */
         .control-group { margin-bottom: 20px; }
@@ -88,6 +84,18 @@
         }
         img#result-image { max-width: 100%; max-height: 70vh; object-fit: contain; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); background: white; }
         
+        /* LOGO OVERLAY (Screen Only) */
+        .logo-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 96px; 
+            height: 96px;
+            object-fit: contain;
+            pointer-events: none; 
+            z-index: 10;
+        }
+
         /* PDF Options */
         .radio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .radio-option {
@@ -116,7 +124,7 @@
         .loading-overlay {
             position: absolute; inset: 0; background: rgba(255,255,255,0.9);
             display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-            z-index: 10;
+            z-index: 20;
         }
         .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -132,7 +140,6 @@
 </head>
 <body>
 
-    <!-- HOME / UPLOAD SCREEN -->
     <div id="upload-screen" class="app-container" style="display: block; min-height: 80vh; display: flex; align-items: center; justify-content: center;">
         <div style="width: 100%; max-width: 600px;">
             <h1>Turn Photos into Coloring Pages</h1>
@@ -152,18 +159,14 @@
         </div>
     </div>
 
-    <!-- MAIN APP SCREEN -->
     <div id="app-screen" class="app-container hidden">
         
-        <!-- SECTION: CONTROLS (Left on Desktop, 2nd on Mobile) -->
         <div class="section-controls card">
             <div class="card-header">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
                 Settings
             </div>
             <div class="card-body">
-                
-                <!-- Detail Slider -->
                 <div class="control-group">
                     <div class="control-header">
                         <label>Detail Level</label>
@@ -173,17 +176,6 @@
                     <div class="control-labels"><span>Simple</span><span>Complex</span></div>
                 </div>
 
-                <!-- Darkness (Threshold) Slider -->
-                <div class="control-group">
-                    <div class="control-header">
-                        <label>Black Threshold</label>
-                        <span id="val-darkness" class="control-value">50</span>
-                    </div>
-                    <input type="range" id="in-darkness" min="10" max="120" value="45">
-                    <div class="control-labels"><span>Lighter</span><span>Darker</span></div>
-                </div>
-
-                <!-- Thickness Slider -->
                 <div class="control-group">
                     <div class="control-header">
                         <label>Line Thickness</label>
@@ -193,7 +185,6 @@
                     <div class="control-labels"><span>Fine</span><span>Marker</span></div>
                 </div>
 
-                <!-- Blur Slider -->
                 <div class="control-group">
                     <div class="control-header">
                         <label>Smoothness</label>
@@ -206,7 +197,6 @@
             </div>
         </div>
 
-        <!-- SECTION: PREVIEW (Right on Desktop, 1st on Mobile) -->
         <div class="section-preview card">
             <div class="preview-container">
                 <div id="loading" class="loading-overlay hidden">
@@ -214,10 +204,10 @@
                     <div>Processing...</div>
                 </div>
                 <img id="result-image" alt="Preview">
+                <img id="overlay-logo" src="logo.png" class="logo-overlay hidden" alt="Logo">
             </div>
         </div>
 
-        <!-- SECTION: PDF OPTIONS (Below Preview on Desktop, 3rd on Mobile) -->
         <div class="section-pdf card">
             <div class="card-header">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
@@ -247,19 +237,16 @@
 
     </div>
 
-    <!-- Hidden inputs/canvas -->
     <input type="file" id="file-input" class="hidden" accept="image/*">
     <input type="file" id="camera-input" class="hidden" accept="image/*" capture="environment">
     <canvas id="proc-canvas" class="hidden"></canvas>
-
-    <!-- PRINT OVERRIDE CONTAINER -->
-    <div id="print-area" class="hidden print-only"></div>
 
     <script>
         // --- APP STATE ---
         const state = {
             src: null,
-            params: { detail: 50, darkness: 45, thick: 0, blur: 2 },
+            logoImg: null, 
+            params: { detail: 50, thick: 0, blur: 2 },
             orientation: 'auto',
             isProcessing: false
         };
@@ -272,22 +259,29 @@
             camIn: document.getElementById('camera-input'),
             canvas: document.getElementById('proc-canvas'),
             img: document.getElementById('result-image'),
+            overlayLogo: document.getElementById('overlay-logo'),
             loading: document.getElementById('loading'),
             inputs: {
                 detail: document.getElementById('in-detail'),
-                darkness: document.getElementById('in-darkness'),
                 thick: document.getElementById('in-thick'),
                 blur: document.getElementById('in-blur')
             },
             labels: {
                 detail: document.getElementById('val-detail'),
-                darkness: document.getElementById('val-darkness'),
                 thick: document.getElementById('val-thick'),
                 blur: document.getElementById('val-blur')
             }
         };
 
         // --- INITIALIZATION ---
+        
+        // Preload Logo with Error Handling
+        const logo = new Image();
+        logo.crossOrigin = "Anonymous"; // Attempt to handle CORS if applicable
+        logo.src = 'logo.png';
+        logo.onload = () => { state.logoImg = logo; };
+        // If it fails (e.g., file not found), we just proceed without it
+
         els.fileIn.onchange = handleFile;
         els.camIn.onchange = handleFile;
 
@@ -302,7 +296,6 @@
 
         function updateLabels() {
             els.labels.detail.innerText = state.params.detail + '%';
-            els.labels.darkness.innerText = state.params.darkness;
             els.labels.blur.innerText = state.params.blur;
             els.labels.thick.innerText = state.params.thick === 0 ? "Fine" : `Level ${state.params.thick}`;
         }
@@ -316,6 +309,9 @@
                     state.src = i;
                     els.upload.classList.add('hidden');
                     els.app.classList.remove('hidden');
+                    
+                    if(state.logoImg) els.overlayLogo.classList.remove('hidden');
+
                     triggerProcess();
                 };
                 i.src = ev.target.result;
@@ -327,6 +323,7 @@
             state.src = null;
             els.upload.classList.remove('hidden');
             els.app.classList.add('hidden');
+            els.overlayLogo.classList.add('hidden');
             els.fileIn.value = '';
         }
 
@@ -338,12 +335,11 @@
             debounceTimer = setTimeout(processImage, 50);
         }
 
-        // --- CORE PROCESSING ENGINE (Vanilla JS) ---
+        // --- CORE PROCESSING ENGINE ---
         function processImage() {
             const ctx = els.canvas.getContext('2d');
             const img = state.src;
             
-            // Resize logic
             const MAX = 1200;
             let w = img.width;
             let h = img.height;
@@ -363,49 +359,36 @@
                 data[i] = data[i+1] = data[i+2] = avg;
             }
 
-            // 2. Box Blur (Noise Reduction)
+            // 2. Box Blur
             if (state.params.blur > 0) {
                 imageData = boxBlur(imageData, w, h, state.params.blur);
                 data = imageData.data;
             }
 
-            // 3. Edge Detection & Hard Thresholding
+            // 3. Edge Detection
             const copy = new Uint8ClampedArray(data);
-            // Lower detail slider = Higher threshold (less lines)
-            // Slider 0-100. Threshold range 60 (simple) down to 5 (complex)
             const threshold = 60 - (state.params.detail * 0.5); 
-            // Darkness slider adjusts the "cut off" for what is considered a line
-            const darkCutoff = 255 - state.params.darkness; 
-
+            
             for (let y = 1; y < h - 1; y++) {
                 for (let x = 1; x < w - 1; x++) {
                     const idx = (y * w + x) * 4;
-                    
-                    // Sobel Kernels
                     const p = (dx, dy) => copy[((y+dy)*w + (x+dx)) * 4];
                     const gx = -p(-1,-1) + p(1,-1) - 2*p(-1,0) + 2*p(1,0) - p(-1,1) + p(1,1);
                     const gy = -p(-1,-1) - 2*p(0,-1) - p(1,-1) + p(-1,1) + 2*p(0,1) + p(1,1);
                     const mag = Math.sqrt(gx*gx + gy*gy);
-
-                    // STRICT BINARY THRESHOLD
-                    // If magnitude (edge strength) is high enough, it's black (0). Else white (255).
                     let val = mag > threshold ? 0 : 255;
-                    
-                    // Cleanup: If the resulting black line is too faint in original (optional), kill it
-                    // But for coloring pages, we mostly trust Sobel.
-                    
                     data[idx] = data[idx+1] = data[idx+2] = val;
                 }
             }
 
-            // 4. Dilation (Thickening) - Applied to binary data
+            // 4. Dilation
             if (state.params.thick > 0) {
                 const binaryCopy = new Uint8ClampedArray(data);
                 const r = state.params.thick;
                 for (let y = r; y < h - r; y++) {
                     for (let x = r; x < w - r; x++) {
                         const idx = (y * w + x) * 4;
-                        if (binaryCopy[idx] === 0) { // If black pixel
+                        if (binaryCopy[idx] === 0) { 
                              for (let ky = -r; ky <= r; ky++) {
                                 for (let kx = -r; kx <= r; kx++) {
                                     if (kx===0 && ky===0) continue;
@@ -446,7 +429,7 @@
             return imageData;
         }
 
-        // --- PDF LOGIC (NATIVE GENERATOR) ---
+        // --- PDF LOGIC ---
         function setOrientation(mode, el) {
             state.orientation = mode;
             document.querySelectorAll('.radio-option').forEach(e => e.classList.remove('selected'));
@@ -457,68 +440,93 @@
             if (!state.src) return;
             els.loading.classList.remove('hidden');
             
-            // Wait a tick to show loading
             setTimeout(() => {
-                const canvas = els.canvas;
-                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG for PDF to enable simple wrapping
-                const imgW = canvas.width;
-                const imgH = canvas.height;
-                
-                // Determine Layout
-                let isLandscape = false;
-                if (state.orientation === 'auto') isLandscape = imgW > imgH;
-                else if (state.orientation === 'landscape') isLandscape = true;
+                try {
+                    // 1. CALCULATE LAYOUT
+                    const imgW = els.canvas.width;
+                    const imgH = els.canvas.height;
+                    
+                    let isLandscape = false;
+                    if (state.orientation === 'auto') isLandscape = imgW > imgH;
+                    else if (state.orientation === 'landscape') isLandscape = true;
 
-                // Letter size in points (1 pt = 1/72 inch)
-                // 8.5 x 11 inches = 612 x 792 pts
-                const pageW = isLandscape ? 792 : 612;
-                const pageH = isLandscape ? 612 : 792;
-                
-                // Margins (0.5 inch = 36pt)
-                const margin = 36;
-                const maxW = pageW - (margin * 2);
-                const maxH = pageH - (margin * 2);
-                
-                // Fit Logic
-                const ratio = imgW / imgH;
-                let finalW = maxW;
-                let finalH = maxW / ratio;
-                if (finalH > maxH) {
-                    finalH = maxH;
-                    finalW = maxH * ratio;
+                    const pageW = isLandscape ? 792 : 612; 
+                    const pageH = isLandscape ? 612 : 792;
+                    const margin = 36;
+                    const maxW = pageW - (margin * 2);
+                    const maxH = pageH - (margin * 2);
+                    
+                    const ratio = imgW / imgH;
+                    let finalW = maxW;
+                    let finalH = maxW / ratio;
+                    if (finalH > maxH) {
+                        finalH = maxH;
+                        finalW = maxH * ratio;
+                    }
+                    
+                    // 2. CREATE COMPOSITE CANVAS
+                    const tc = document.createElement('canvas');
+                    tc.width = imgW;
+                    tc.height = imgH;
+                    const ctx = tc.getContext('2d');
+                    
+                    // Draw Line Art
+                    ctx.drawImage(els.canvas, 0, 0);
+
+                    // Draw Logo (if loaded)
+                    if (state.logoImg) {
+                        const scaleFactor = imgW / finalW; 
+                        const logoPixelSize = 72 * scaleFactor; // 1 inch in pixels
+                        const padding = 18 * scaleFactor; 
+
+                        try {
+                            ctx.drawImage(
+                                state.logoImg, 
+                                imgW - logoPixelSize - padding,
+                                imgH - logoPixelSize - padding,
+                                logoPixelSize,
+                                logoPixelSize
+                            );
+                        } catch (e) {
+                            console.warn("Logo drawing failed (likely CORS). Skipping logo.");
+                        }
+                    }
+
+                    // 3. GENERATE PDF
+                    let imgData;
+                    try {
+                        imgData = tc.toDataURL('image/jpeg', 0.85);
+                    } catch (e) {
+                        // If Tainted Canvas error (local security policy), fallback to original canvas without logo
+                        alert("Browser Security Notice: Cannot include logo when running from local file system. Generating PDF without logo.");
+                        imgData = els.canvas.toDataURL('image/jpeg', 0.85);
+                    }
+                    
+                    const x = (pageW - finalW) / 2;
+                    const y = (pageH - finalH) / 2;
+
+                    const pdfBlob = generatePDF(imgData, pageW, pageH, x, y, finalW, finalH, imgW, imgH);
+                    
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(pdfBlob);
+                    link.download = "coloring-page.pdf";
+                    link.click();
+                    
+                } catch (err) {
+                    console.error(err);
+                    alert("An error occurred generating the PDF. Check console for details.");
+                } finally {
+                    els.loading.classList.add('hidden');
                 }
-                
-                // Centering
-                const x = (pageW - finalW) / 2;
-                const y = (pageH - finalH) / 2;
-
-                // Generate PDF Blob
-                const pdfBlob = generatePDF(imgData, pageW, pageH, x, y, finalW, finalH);
-                
-                // Download
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(pdfBlob);
-                link.download = "coloring-page.pdf";
-                link.click();
-                els.loading.classList.add('hidden');
             }, 50);
         }
 
-        // --- CUSTOM PDF ENGINE (Zero Dependency) ---
-        // Wraps a JPEG data stream into a minimal valid PDF container
-        function generatePDF(jpegDataUrl, pageW, pageH, x, y, drawW, drawH) {
-            // Remove header
+        function generatePDF(jpegDataUrl, pageW, pageH, x, y, drawW, drawH, pixW, pixH) {
             const raw = atob(jpegDataUrl.split(',')[1]);
             const streamLength = raw.length;
-            
-            // We need to convert binary string to Uint8Array for the Blob
             const array = new Uint8Array(new ArrayBuffer(streamLength));
             for(let i = 0; i < streamLength; i++) { array[i] = raw.charCodeAt(i); }
 
-            // PDF Structure Construction
-            // We use an uncompressed stream for the image data because Deflate is hard in vanilla JS
-            // But JPEG is already compressed data, so we use DCTDecode filter.
-            
             const objects = [];
             let offset = 0;
             const xref = [];
@@ -531,47 +539,27 @@
                 return xref.length;
             }
 
-            // Header
             const header = "%PDF-1.4\n";
             offset += header.length;
 
-            // 1. Catalog
             addObj(`<< /Type /Catalog /Pages 2 0 R >>`);
-            
-            // 2. Pages
             addObj(`<< /Type /Pages /Kids [3 0 R] /Count 1 >>`);
 
-            // 3. Page
-            // Y-axis in PDF is bottom-up. We must transform coordinates.
-            // Image drawn at x, y (from top left) with height h
-            // PDF Y = PageHeight - y - h
             const pdfY = pageH - y - drawH;
-            
             const contentStream = `q ${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} ${x.toFixed(2)} ${pdfY.toFixed(2)} cm /Img1 Do Q`;
             
             addObj(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Img1 4 0 R >> >> /Contents 5 0 R >>`);
 
-            // 4. Image XObject
-            // We reference the stream (Obj 6) or put stream here? 
-            // Better to separate dictionary and stream to calculate lengths easier, but merging is fine.
-            // Note: JPEG data needs /DCTDecode filter
-            
-            xref.push(offset); // Obj 4
-            const imgHeader = `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${els.canvas.width} /Height ${els.canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${streamLength} >>\nstream\n`;
+            xref.push(offset);
+            const imgHeader = `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${pixW} /Height ${pixH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${streamLength} >>\nstream\n`;
             offset += imgHeader.length;
             objects.push(imgHeader);
             
-            // Pushing the raw array is tricky in string concatenation. 
-            // We will assemble the final Blob parts array.
-            
             const imgFooter = "\nendstream\nendobj\n";
             offset += streamLength + imgFooter.length;
-            // Obj 4 is special, it's split in the array
             
-            // 5. Contents Stream
             addObj(`<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`);
 
-            // Footer / Trailer
             const xrefOffset = offset;
             let footer = `xref\n0 ${xref.length + 1}\n0000000000 65535 f \n`;
             xref.forEach(o => {
@@ -579,17 +567,10 @@
             });
             footer += `trailer\n<< /Size ${xref.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 
-            // Construct Blob
             return new Blob([
-                header, 
-                objects[0], // Catalog
-                objects[1], // Pages
-                objects[2], // Page
-                imgHeader,  // Image Start
-                array,      // Image Binary Data (JPEG)
-                imgFooter,  // Image End
-                objects[3], // Content
-                footer
+                header, objects[0], objects[1], objects[2], 
+                imgHeader, array, imgFooter, 
+                objects[3], footer
             ], { type: 'application/pdf' });
         }
     </script>
