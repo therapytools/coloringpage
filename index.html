@@ -1,1 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coloring Page Maker (Offline Pro)</title>
+    <style>
+        /* --- RESET & VARIABLES --- */
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg: #f8fafc;
+            --panel: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; padding-bottom: 40px; }
+        
+        /* --- LAYOUT GRID --- */
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            gap: 24px;
+        }
 
+        /* Mobile Layout (Default): Image(1) -> Sliders(2) -> PDF(3) */
+        .section-preview { order: 1; }
+        .section-controls { order: 2; }
+        .section-pdf { order: 3; }
+
+        /* Desktop Layout */
+        @media (min-width: 1024px) {
+            .app-container {
+                grid-template-columns: 320px 1fr;
+                align-items: start;
+            }
+            /* Controls on Left */
+            .section-controls { grid-column: 1; grid-row: 1; order: unset; }
+            /* Preview on Right */
+            .section-preview { grid-column: 2; grid-row: 1; order: unset; }
+            /* PDF Options below Preview on Right */
+            .section-pdf { grid-column: 2; grid-row: 2; order: unset; }
+        }
+
+        /* --- COMPONENTS --- */
+        .card { background: var(--panel); border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; }
+        .card-header { padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; display: flex; align-items: center; gap: 8px; background: #fdfdfd; }
+        .card-body { padding: 20px; }
+        
+        h1 { text-align: center; margin-bottom: 20px; font-size: 1.5rem; color: var(--text); }
+        
+        /* Upload Area */
+        .upload-area {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border: 2px dashed var(--border); border-radius: var(--radius);
+            padding: 40px 20px; gap: 16px; cursor: pointer; transition: 0.2s;
+            background: var(--panel); text-align: center;
+            min-height: 300px;
+        }
+        .upload-area:hover { border-color: var(--primary); background: #eff6ff; }
+        .btn-group { display: flex; gap: 10px; width: 100%; max-width: 400px; }
+        
+        /* Controls */
+        .control-group { margin-bottom: 20px; }
+        .control-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.9rem; font-weight: 500; }
+        .control-value { color: var(--text-light); }
+        .control-labels { display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-top: 4px; }
+        
+        /* Sliders */
+        input[type=range] {
+            width: 100%; height: 6px; background: #e2e8f0; border-radius: 4px; outline: none; -webkit-appearance: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px; background: var(--primary); border-radius: 50%; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Image Preview */
+        .preview-container {
+            position: relative; min-height: 400px; max-height: 80vh;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px); background-size: 20px 20px;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        img#result-image { max-width: 100%; max-height: 70vh; object-fit: contain; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); background: white; }
+        
+        /* PDF Options */
+        .radio-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .radio-option {
+            border: 1px solid var(--border); border-radius: 8px; padding: 12px; cursor: pointer; text-align: center; transition: 0.2s;
+            display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.85rem;
+        }
+        .radio-option:hover { background: #f1f5f9; }
+        .radio-option.selected { border-color: var(--primary); background: #eff6ff; color: var(--primary); font-weight: 600; }
+        .radio-icon { width: 24px; height: 32px; border: 2px solid currentColor; border-radius: 2px; margin-bottom: 4px; opacity: 0.6; }
+        .radio-icon.landscape { width: 32px; height: 24px; }
+        .radio-icon.auto { border: none; font-size: 24px; opacity: 1; }
+
+        /* Buttons */
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-outline { background: white; border: 1px solid var(--border); color: var(--text); }
+        .btn-outline:hover { background: #f8fafc; border-color: #cbd5e1; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .hidden { display: none !important; }
+        .loading-overlay {
+            position: absolute; inset: 0; background: rgba(255,255,255,0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+            z-index: 10;
+        }
+        .spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Print Override */
+        @media print {
+            .app-container > * { display: none; }
+            body { background: white; }
+            .print-only { display: block !important; position: absolute; top:0; left:0; width: 100%; height: 100%; }
+            .print-only img { width: 100%; height: 100%; object-fit: contain; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HOME / UPLOAD SCREEN -->
+    <div id="upload-screen" class="app-container" style="display: block; min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 100%; max-width: 600px;">
+            <h1>Turn Photos into Coloring Pages</h1>
+            <div class="upload-area" onclick="document.getElementById('file-input').click()">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div>
+                    <div style="font-weight: 600; font-size: 1.1rem;">Tap to Upload Photo</div>
+                    <div style="color: var(--text-light); font-size: 0.9rem;">JPG or PNG supported</div>
+                </div>
+            </div>
+            <div style="margin-top: 16px; text-align: center;">
+                <button class="btn btn-outline" onclick="document.getElementById('camera-input').click()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    Or take a photo
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP SCREEN -->
+    <div id="app-screen" class="app-container hidden">
+        
+        <!-- SECTION: CONTROLS (Left on Desktop, 2nd on Mobile) -->
+        <div class="section-controls card">
+            <div class="card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                Settings
+            </div>
+            <div class="card-body">
+                
+                <!-- Detail Slider -->
+                <div class="control-group">
+                    <div class="control-header">
+                        <label>Detail Level</label>
+                        <span id="val-detail" class="control-value">Medium</span>
+                    </div>
+                    <input type="range" id="in-detail" min="0" max="100" value="50">
+                    <div class="control-labels"><span>Simple</span><span>Complex</span></div>
+                </div>
+
+                <!-- Darkness (Threshold) Slider -->
+                <div class="control-group">
+                    <div class="control-header">
+                        <label>Black Threshold</label>
+                        <span id="val-darkness" class="control-value">50</span>
+                    </div>
+                    <input type="range" id="in-darkness" min="10" max="120" value="45">
+                    <div class="control-labels"><span>Lighter</span><span>Darker</span></div>
+                </div>
+
+                <!-- Thickness Slider -->
+                <div class="control-group">
+                    <div class="control-header">
+                        <label>Line Thickness</label>
+                        <span id="val-thick" class="control-value">Pen</span>
+                    </div>
+                    <input type="range" id="in-thick" min="0" max="5" value="0">
+                    <div class="control-labels"><span>Fine</span><span>Marker</span></div>
+                </div>
+
+                <!-- Blur Slider -->
+                <div class="control-group">
+                    <div class="control-header">
+                        <label>Smoothness</label>
+                        <span id="val-blur" class="control-value">2</span>
+                    </div>
+                    <input type="range" id="in-blur" min="0" max="10" value="2">
+                </div>
+
+                <button class="btn btn-outline" onclick="resetApp()" style="margin-top: 24px;">Start Over</button>
+            </div>
+        </div>
+
+        <!-- SECTION: PREVIEW (Right on Desktop, 1st on Mobile) -->
+        <div class="section-preview card">
+            <div class="preview-container">
+                <div id="loading" class="loading-overlay hidden">
+                    <div class="spinner"></div>
+                    <div>Processing...</div>
+                </div>
+                <img id="result-image" alt="Preview">
+            </div>
+        </div>
+
+        <!-- SECTION: PDF OPTIONS (Below Preview on Desktop, 3rd on Mobile) -->
+        <div class="section-pdf card">
+            <div class="card-header">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                PDF Options
+            </div>
+            <div class="card-body">
+                <div class="radio-grid">
+                    <div class="radio-option selected" onclick="setOrientation('auto', this)">
+                        <div class="radio-icon auto">✨</div>
+                        Auto
+                    </div>
+                    <div class="radio-option" onclick="setOrientation('portrait', this)">
+                        <div class="radio-icon portrait"></div>
+                        Portrait
+                    </div>
+                    <div class="radio-option" onclick="setOrientation('landscape', this)">
+                        <div class="radio-icon landscape"></div>
+                        Landscape
+                    </div>
+                </div>
+                <button class="btn btn-danger" onclick="downloadPDF()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download PDF
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Hidden inputs/canvas -->
+    <input type="file" id="file-input" class="hidden" accept="image/*">
+    <input type="file" id="camera-input" class="hidden" accept="image/*" capture="environment">
+    <canvas id="proc-canvas" class="hidden"></canvas>
+
+    <!-- PRINT OVERRIDE CONTAINER -->
+    <div id="print-area" class="hidden print-only"></div>
+
+    <script>
+        // --- APP STATE ---
+        const state = {
+            src: null,
+            params: { detail: 50, darkness: 45, thick: 0, blur: 2 },
+            orientation: 'auto',
+            isProcessing: false
+        };
+
+        // --- DOM ELEMENTS ---
+        const els = {
+            upload: document.getElementById('upload-screen'),
+            app: document.getElementById('app-screen'),
+            fileIn: document.getElementById('file-input'),
+            camIn: document.getElementById('camera-input'),
+            canvas: document.getElementById('proc-canvas'),
+            img: document.getElementById('result-image'),
+            loading: document.getElementById('loading'),
+            inputs: {
+                detail: document.getElementById('in-detail'),
+                darkness: document.getElementById('in-darkness'),
+                thick: document.getElementById('in-thick'),
+                blur: document.getElementById('in-blur')
+            },
+            labels: {
+                detail: document.getElementById('val-detail'),
+                darkness: document.getElementById('val-darkness'),
+                thick: document.getElementById('val-thick'),
+                blur: document.getElementById('val-blur')
+            }
+        };
+
+        // --- INITIALIZATION ---
+        els.fileIn.onchange = handleFile;
+        els.camIn.onchange = handleFile;
+
+        // Bind Sliders
+        Object.keys(els.inputs).forEach(key => {
+            els.inputs[key].oninput = (e) => {
+                state.params[key] = parseInt(e.target.value);
+                updateLabels();
+                triggerProcess();
+            };
+        });
+
+        function updateLabels() {
+            els.labels.detail.innerText = state.params.detail + '%';
+            els.labels.darkness.innerText = state.params.darkness;
+            els.labels.blur.innerText = state.params.blur;
+            els.labels.thick.innerText = state.params.thick === 0 ? "Fine" : `Level ${state.params.thick}`;
+        }
+
+        function handleFile(e) {
+            if (!e.target.files[0]) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const i = new Image();
+                i.onload = () => {
+                    state.src = i;
+                    els.upload.classList.add('hidden');
+                    els.app.classList.remove('hidden');
+                    triggerProcess();
+                };
+                i.src = ev.target.result;
+            };
+            reader.readAsDataURL(e.target.files[0]);
+        }
+
+        function resetApp() {
+            state.src = null;
+            els.upload.classList.remove('hidden');
+            els.app.classList.add('hidden');
+            els.fileIn.value = '';
+        }
+
+        let debounceTimer;
+        function triggerProcess() {
+            if (!state.src) return;
+            els.loading.classList.remove('hidden');
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(processImage, 50);
+        }
+
+        // --- CORE PROCESSING ENGINE (Vanilla JS) ---
+        function processImage() {
+            const ctx = els.canvas.getContext('2d');
+            const img = state.src;
+            
+            // Resize logic
+            const MAX = 1200;
+            let w = img.width;
+            let h = img.height;
+            if (w > h && w > MAX) { h *= MAX/w; w = MAX; }
+            else if (h > MAX) { w *= MAX/h; h = MAX; }
+            
+            els.canvas.width = w;
+            els.canvas.height = h;
+            ctx.drawImage(img, 0, 0, w, h);
+
+            let imageData = ctx.getImageData(0, 0, w, h);
+            let data = imageData.data;
+
+            // 1. Grayscale
+            for (let i = 0; i < data.length; i += 4) {
+                const avg = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+                data[i] = data[i+1] = data[i+2] = avg;
+            }
+
+            // 2. Box Blur (Noise Reduction)
+            if (state.params.blur > 0) {
+                imageData = boxBlur(imageData, w, h, state.params.blur);
+                data = imageData.data;
+            }
+
+            // 3. Edge Detection & Hard Thresholding
+            const copy = new Uint8ClampedArray(data);
+            // Lower detail slider = Higher threshold (less lines)
+            // Slider 0-100. Threshold range 60 (simple) down to 5 (complex)
+            const threshold = 60 - (state.params.detail * 0.5); 
+            // Darkness slider adjusts the "cut off" for what is considered a line
+            const darkCutoff = 255 - state.params.darkness; 
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const idx = (y * w + x) * 4;
+                    
+                    // Sobel Kernels
+                    const p = (dx, dy) => copy[((y+dy)*w + (x+dx)) * 4];
+                    const gx = -p(-1,-1) + p(1,-1) - 2*p(-1,0) + 2*p(1,0) - p(-1,1) + p(1,1);
+                    const gy = -p(-1,-1) - 2*p(0,-1) - p(1,-1) + p(-1,1) + 2*p(0,1) + p(1,1);
+                    const mag = Math.sqrt(gx*gx + gy*gy);
+
+                    // STRICT BINARY THRESHOLD
+                    // If magnitude (edge strength) is high enough, it's black (0). Else white (255).
+                    let val = mag > threshold ? 0 : 255;
+                    
+                    // Cleanup: If the resulting black line is too faint in original (optional), kill it
+                    // But for coloring pages, we mostly trust Sobel.
+                    
+                    data[idx] = data[idx+1] = data[idx+2] = val;
+                }
+            }
+
+            // 4. Dilation (Thickening) - Applied to binary data
+            if (state.params.thick > 0) {
+                const binaryCopy = new Uint8ClampedArray(data);
+                const r = state.params.thick;
+                for (let y = r; y < h - r; y++) {
+                    for (let x = r; x < w - r; x++) {
+                        const idx = (y * w + x) * 4;
+                        if (binaryCopy[idx] === 0) { // If black pixel
+                             for (let ky = -r; ky <= r; ky++) {
+                                for (let kx = -r; kx <= r; kx++) {
+                                    if (kx===0 && ky===0) continue;
+                                    const nIdx = ((y+ky)*w + (x+kx)) * 4;
+                                    data[nIdx] = data[nIdx+1] = data[nIdx+2] = 0;
+                                }
+                             }
+                        }
+                    }
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+            els.img.src = els.canvas.toDataURL('image/png');
+            els.loading.classList.add('hidden');
+        }
+
+        function boxBlur(imageData, w, h, r) {
+            const data = imageData.data;
+            const copy = new Uint8ClampedArray(data);
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    let sum = 0, count = 0;
+                    for (let ky = -1; ky <= 1; ky++) {
+                        for (let kx = -1; kx <= 1; kx++) {
+                            const ny = y + ky; const nx = x + kx;
+                            if (ny >= 0 && ny < h && nx >= 0 && nx < w) {
+                                sum += copy[(ny * w + nx) * 4];
+                                count++;
+                            }
+                        }
+                    }
+                    const idx = (y * w + x) * 4;
+                    const avg = sum / count;
+                    data[idx] = data[idx+1] = data[idx+2] = avg;
+                }
+            }
+            return imageData;
+        }
+
+        // --- PDF LOGIC (NATIVE GENERATOR) ---
+        function setOrientation(mode, el) {
+            state.orientation = mode;
+            document.querySelectorAll('.radio-option').forEach(e => e.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        async function downloadPDF() {
+            if (!state.src) return;
+            els.loading.classList.remove('hidden');
+            
+            // Wait a tick to show loading
+            setTimeout(() => {
+                const canvas = els.canvas;
+                const imgData = canvas.toDataURL('image/jpeg', 0.8); // Use JPEG for PDF to enable simple wrapping
+                const imgW = canvas.width;
+                const imgH = canvas.height;
+                
+                // Determine Layout
+                let isLandscape = false;
+                if (state.orientation === 'auto') isLandscape = imgW > imgH;
+                else if (state.orientation === 'landscape') isLandscape = true;
+
+                // Letter size in points (1 pt = 1/72 inch)
+                // 8.5 x 11 inches = 612 x 792 pts
+                const pageW = isLandscape ? 792 : 612;
+                const pageH = isLandscape ? 612 : 792;
+                
+                // Margins (0.5 inch = 36pt)
+                const margin = 36;
+                const maxW = pageW - (margin * 2);
+                const maxH = pageH - (margin * 2);
+                
+                // Fit Logic
+                const ratio = imgW / imgH;
+                let finalW = maxW;
+                let finalH = maxW / ratio;
+                if (finalH > maxH) {
+                    finalH = maxH;
+                    finalW = maxH * ratio;
+                }
+                
+                // Centering
+                const x = (pageW - finalW) / 2;
+                const y = (pageH - finalH) / 2;
+
+                // Generate PDF Blob
+                const pdfBlob = generatePDF(imgData, pageW, pageH, x, y, finalW, finalH);
+                
+                // Download
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(pdfBlob);
+                link.download = "coloring-page.pdf";
+                link.click();
+                els.loading.classList.add('hidden');
+            }, 50);
+        }
+
+        // --- CUSTOM PDF ENGINE (Zero Dependency) ---
+        // Wraps a JPEG data stream into a minimal valid PDF container
+        function generatePDF(jpegDataUrl, pageW, pageH, x, y, drawW, drawH) {
+            // Remove header
+            const raw = atob(jpegDataUrl.split(',')[1]);
+            const streamLength = raw.length;
+            
+            // We need to
